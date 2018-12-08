@@ -1,7 +1,6 @@
 import scala.collection.mutable.ListBuffer
 
 object Main extends App {
-  // PROVLIMA STO INSERT!!
   var tree = new QuadTree[String](2)
   var points = ListBuffer(Point(1,2), Point(1,4), Point(4,1))
   tree.build(points)
@@ -15,5 +14,4 @@ object Main extends App {
     else
       println("NOT Found " + p)
   }
-
 }
