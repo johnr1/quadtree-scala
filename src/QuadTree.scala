@@ -26,6 +26,9 @@ class QuadTree[A](K: Int = 2) {
     var bottomRight: Node = _
     var elements: ListBuffer[Point] = new ListBuffer[Point]()
 
+    // For iterative access
+    def children = Array(topLeft, topRight, bottomLeft, bottomRight)
+
     def isLeaf: Boolean = topLeft == null
     def center: Point = bounds.center
     def topRightBounds = Box(center, bounds.upperBound)
@@ -43,6 +46,7 @@ class QuadTree[A](K: Int = 2) {
 
     def insert(point: Point): Unit = {
       def split(): Unit = {
+        println("Splited")
         topLeft = new Node(K, topLeftBounds)
         bottomLeft = new Node(K, bottomLeftBounds)
         topRight = new Node(K, topRightBounds)
@@ -69,8 +73,43 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def remove(point: Point): Unit = {
-      throw new NotImplementedError("delete not implemented yet")
+    def remove(point: Point): Boolean = {
+      def mustCollapse: Boolean = {
+        if (isLeaf) false
+        else children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
+      }
+
+      def collapse(): Unit ={
+        // collect children elements, assign to self, nullify children
+        elements = children.foldLeft(ListBuffer[Point]()) { _ ++ _.elements}
+        topLeft = null
+        topRight = null
+        bottomLeft = null
+        bottomRight = null
+      }
+
+      def removeOnLeaf(): Boolean = {
+        if (elements.contains(point)){
+          println("[Debug]: Removed from leaf point: " + point)
+          elements -= point
+          return true
+        }
+        println("[Debug]: Not found in leaf point: " + point)
+        false
+      }
+
+      if(!bounds.contains(point))
+        return false
+
+      if(isLeaf) {
+        removeOnLeaf()
+      }
+      else {
+        val foundPoint = findSubtree(point).remove(point)
+        if(foundPoint && mustCollapse)
+          collapse()
+        foundPoint
+      }
     }
 
     def update(point: Point): Unit = {
@@ -97,8 +136,7 @@ class QuadTree[A](K: Int = 2) {
 
     private def findSubtree(p: Point): Node = {
       // Could be unsafe
-      Array(bottomLeft, bottomRight, topLeft, topRight)
-        .find(_.bounds.contains(p)).get
+      children.find(_.bounds.contains(p)).get
     }
   }
 }
