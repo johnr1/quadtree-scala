@@ -5,7 +5,7 @@ case class Point(x: Double, y: Double)
 case class Box(lowerBound: Point, upperBound: Point){
   def center = Point((upperBound.x + lowerBound.x) / 2, (upperBound.y + lowerBound.y) / 2)
   def contains(p: Point): Boolean =
-    p.x > lowerBound.x && p.x < upperBound.x && p.y > lowerBound.y && p.y < upperBound.y
+    p.x > lowerBound.x && p.x <= upperBound.x && p.y > lowerBound.y && p.y <= upperBound.y
 }
 
 class QuadTree[A](K: Int = 2) {
@@ -46,7 +46,6 @@ class QuadTree[A](K: Int = 2) {
 
     def insert(point: Point): Unit = {
       def split(): Unit = {
-        println("Splited")
         topLeft = new Node(K, topLeftBounds)
         bottomLeft = new Node(K, bottomLeftBounds)
         topRight = new Node(K, topRightBounds)
@@ -135,7 +134,7 @@ class QuadTree[A](K: Int = 2) {
     }
 
     private def findSubtree(p: Point): Node = {
-      // Could be unsafe
+      // Potential no such element exception
       children.find(_.bounds.contains(p)).get
     }
   }
