@@ -1,6 +1,6 @@
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
-case class Point(x: Double, y: Double)
+case class Point(var x: Double, var y: Double)
 
 case class Box(lowerBound: Point, upperBound: Point){
   def center = Point((upperBound.x + lowerBound.x) / 2, (upperBound.y + lowerBound.y) / 2)
@@ -9,10 +9,10 @@ case class Box(lowerBound: Point, upperBound: Point){
 }
 
 class QuadTree[A](K: Int = 2) {
-  private var root = new Node(K, Box(Point(-5, -5), Point(5, 5)))
+  private var root = new Node(K, Box(Point(-100, -100), Point(100, 100)))
 
   def build(points: Iterable[Point]): Unit = root.build(points)
-  def insert(p: Point): Unit = root.insert(p)
+  def insert(p: Point): Unit = {root = root.insert(p)}
   def remove(p: Point): Unit = root.remove(p)
   def search(p: Point): Boolean = root.search(p)
   def update(p: Point): Unit = root.update(p)
@@ -24,13 +24,15 @@ class QuadTree[A](K: Int = 2) {
     var topRight: Node = _
     var bottomLeft: Node = _
     var bottomRight: Node = _
-    var elements: ListBuffer[Point] = new ListBuffer[Point]()
-
     // For iterative access
     def children = Array(topLeft, topRight, bottomLeft, bottomRight)
 
+    var elements: ArrayBuffer[Point] = new ArrayBuffer[Point]()
+
     def isLeaf: Boolean = topLeft == null
     def center: Point = bounds.center
+
+    // Bound calculators
     def topRightBounds = Box(center, bounds.upperBound)
     def bottomLeftBounds = Box(bounds.lowerBound, center)
     def topLeftBounds = Box(
@@ -41,10 +43,9 @@ class QuadTree[A](K: Int = 2) {
       Point(bounds.upperBound.x, center.y))
 
     /* Public Functions */
-
     def build(points: Iterable[Point]): Unit = points.foreach(insert)
 
-    def insert(point: Point): Unit = {
+    def insert(point: Point): Node = {
       def split(): Unit = {
         topLeft = new Node(K, topLeftBounds)
         bottomLeft = new Node(K, bottomLeftBounds)
@@ -55,53 +56,52 @@ class QuadTree[A](K: Int = 2) {
       }
 
       def expand(): Node = {
-        throw new NotImplementedError("Expanding not implemented yet")
+        throw new NotImplementedError("Expanding not implemented yet.")
+        this
+      }
+
+      def insertElement(): Unit = {
+        if (!elements.contains(point)) elements += point
+        if (elements.size > K) split()
       }
 
       // Check if bounds, else recursively expand
       if (!bounds.contains(point)) {
-        expand().insert(point)
-        return
+        return expand().insert(point)
       }
 
-      if (isLeaf){
-        elements += point
-        if(elements.size > K) split()
-      }else {
+      if (isLeaf)
+        insertElement()
+      else
         findSubtree(point).insert(point)
-      }
+
+      this
     }
 
     def remove(point: Point): Boolean = {
-      def mustCollapse: Boolean = {
-        if (isLeaf) false
-        else children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
-      }
+      def mustCollapse = !isLeaf && children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
 
       def collapse(): Unit ={
-        // collect children elements, assign to self, nullify children
-        elements = children.foldLeft(ListBuffer[Point]()) { _ ++ _.elements}
+        elements = children.foldLeft(ArrayBuffer[Point]()) { _ ++ _.elements}
         topLeft = null
         topRight = null
         bottomLeft = null
         bottomRight = null
       }
 
-      def removeOnLeaf(): Boolean = {
-        if (elements.contains(point)){
-          println("[Debug]: Removed from leaf point: " + point)
+      def removeElement(): Boolean = {
+        val containsPoint = elements.contains(point)
+        if (containsPoint)
           elements -= point
-          return true
-        }
-        println("[Debug]: Not found in leaf point: " + point)
-        false
+
+        containsPoint
       }
 
       if(!bounds.contains(point))
         return false
 
       if(isLeaf) {
-        removeOnLeaf()
+        removeElement()
       }
       else {
         val foundPoint = findSubtree(point).remove(point)
@@ -111,8 +111,25 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def update(point: Point): Unit = {
-      throw new NotImplementedError("update not implemented yet")
+    def update(point: Point): Boolean = {
+      def updateElement(): Boolean = {
+        val i = elements.indexOf(point)
+
+        if(i == -1) {
+          false
+        } else {
+          println("No data for update yet")
+          true //elements(i) =
+        }
+      }
+
+      if (!bounds.contains(point)) {
+        false
+      } else if (isLeaf) {
+        updateElement()
+      } else {
+        findSubtree(point).update(point)
+      }
     }
 
     def search(point: Point): Boolean = {
