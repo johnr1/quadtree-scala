@@ -9,7 +9,7 @@ case class Box(lowerBound: Point, upperBound: Point){
 }
 
 class QuadTree[A](K: Int = 2) {
-  private var root = new Node(K, Box(Point(-100, -100), Point(100, 100)))
+  private var root = new Node(K, Box(Point(-1000, -1000), Point(1000, 1000)))
 
   def build(points: Iterable[Point]): Unit = root.build(points)
   def insert(p: Point): Unit = {root = root.insert(p)}
