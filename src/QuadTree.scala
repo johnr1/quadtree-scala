@@ -1,11 +1,17 @@
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{ListBuffer}
 
-case class Point(var x: Double, var y: Double)
+// Comparison <op>, returns true if both x and y are true for <op>
+case class Point(var x: Double, var y: Double) {
+  def <(p: Point): Boolean = x < p.x && y < p.y
+  def >(p: Point): Boolean = x > p.x && y > p.y
+  def <= (p: Point): Boolean = x <= p.x && y <= p.y
+  def >= (p: Point): Boolean = x >= p.x && y >= p.y
+}
 
 case class Box(lowerBound: Point, upperBound: Point){
   def center = Point((upperBound.x + lowerBound.x) / 2, (upperBound.y + lowerBound.y) / 2)
-  def contains(p: Point): Boolean =
-    p.x > lowerBound.x && p.x <= upperBound.x && p.y > lowerBound.y && p.y <= upperBound.y
+  def contains(p: Point): Boolean = p > lowerBound && p <= upperBound
+  def overlaps(b: Box): Boolean = lowerBound <= b.upperBound && upperBound >= b.lowerBound
 }
 
 class QuadTree[A](K: Int = 2) {
@@ -16,7 +22,7 @@ class QuadTree[A](K: Int = 2) {
   def remove(p: Point): Unit = root.remove(p)
   def search(p: Point): Boolean = root.search(p)
   def update(p: Point): Unit = root.update(p)
-  def rangeSearch(p1: Point, p2: Point): Unit = root.rangeSearch(p1, p2)
+  def rangeSearch(p1: Point, p2: Point): ListBuffer[Point] = root.rangeSearch(p1, p2)
   def kNNSearch(p: Point): Unit = root.kNNSearch(p)
 
   class Node(K: Int, var bounds: Box = null) {
@@ -27,7 +33,7 @@ class QuadTree[A](K: Int = 2) {
     // For iterative access
     def children = Array(topLeft, topRight, bottomLeft, bottomRight)
 
-    var elements: ArrayBuffer[Point] = new ArrayBuffer[Point]()
+    var elements: ListBuffer[Point] = new ListBuffer[Point]()
 
     def isLeaf: Boolean = topLeft == null
     def center: Point = bounds.center
@@ -82,7 +88,7 @@ class QuadTree[A](K: Int = 2) {
       def mustCollapse = !isLeaf && children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
 
       def collapse(): Unit ={
-        elements = children.foldLeft(ArrayBuffer[Point]()) { _ ++ _.elements}
+        elements = children.foldLeft(ListBuffer[Point]()) { _ ++ _.elements}
         topLeft = null
         topRight = null
         bottomLeft = null
@@ -142,13 +148,22 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
+    def rangeSearch(p1: Point, p2: Point): ListBuffer[Point] = {
+      if(!(p1 <= p2)) return new ListBuffer[Point]
+
+      if(isLeaf){
+        elements.filter(p => p >= p1 && p <= p2)
+      }
+      else{
+        children.filter(_.bounds.overlaps(Box(p1, p2)))
+          .foldLeft(ListBuffer[Point]()) { _ ++ _.rangeSearch(p1, p2)}
+      }
+    }
+
     def kNNSearch(point: Point): Unit = {
       throw new NotImplementedError("kNNSearch not implemented yet")
     }
 
-    def rangeSearch(p1: Point, p2: Point): Unit = {
-      throw new NotImplementedError("Range not implemented yet")
-    }
 
     private def findSubtree(p: Point): Node = {
       // Potential no such element exception
