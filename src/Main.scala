@@ -12,9 +12,9 @@ object Main extends App {
     println("!!! Removal Tests failed. Structure not correct !!!")
   }
 
-  if(Tests.testRangeSearch()){
-    println("Passed rangeSearch test")
-  } else {
-    println("!!! RangeSearch Tests failed. Structure not correct !!!")
-  }
+//  if(Tests.testRangeSearch()){
+//    println("Passed rangeSearch test")
+//  } else {
+//    println("!!! RangeSearch Tests failed. Structure not correct !!!")
+//  }
 }

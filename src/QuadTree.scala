@@ -1,4 +1,4 @@
-import scala.collection.mutable.{ListBuffer}
+import scala.collection.mutable.ListBuffer
 
 // Comparison <op>, returns true if both x and y are true for <op>
 case class Point(var x: Double, var y: Double) {
@@ -15,15 +15,16 @@ case class Box(lowerBound: Point, upperBound: Point){
 }
 
 class QuadTree[A](K: Int = 2) {
+  case class Element(position: Point, data: A)
   private var root = new Node(K, Box(Point(-1000, -1000), Point(1000, 1000)))
 
-  def build(points: Iterable[Point]): Unit = root.build(points)
-  def insert(p: Point): Unit = {root = root.insert(p)}
-  def remove(p: Point): Unit = root.remove(p)
-  def search(p: Point): Boolean = root.search(p)
-  def update(p: Point): Unit = root.update(p)
-  def rangeSearch(fromPoint: Point, toPoint: Point): ListBuffer[Point] = root.rangeSearch(fromPoint, toPoint)
-  def kNNSearch(p: Point): Unit = root.kNNSearch(p)
+  def build(elements: Iterable[Element]): Unit = root.build(elements)
+  def insert(position: Point, data: A): Unit = {root = root.insert(Element(position, data))}
+  def remove(position: Point): Boolean = root.remove(position)
+  def search(position: Point): Option[A] = root.search(position)
+  def update(position: Point, data: A): Boolean = root.update(Element(position, data))
+  def rangeSearch(fromPosition: Point, toPosition: Point): ListBuffer[A] = root.rangeSearch(fromPosition, toPosition)
+  def kNNSearch(position: Point): Unit = root.kNNSearch(position)
 
   class Node(K: Int, var bounds: Box = null) {
     var topLeft: Node = _
@@ -33,7 +34,7 @@ class QuadTree[A](K: Int = 2) {
     // For iterative access
     def children = Array(topLeft, topRight, bottomLeft, bottomRight)
 
-    var elements: ListBuffer[Point] = new ListBuffer[Point]()
+    var elements: ListBuffer[Element] = new ListBuffer[Element]()
 
     def isLeaf: Boolean = topLeft == null
     def center: Point = bounds.center
@@ -49,15 +50,15 @@ class QuadTree[A](K: Int = 2) {
       Point(bounds.upperBound.x, center.y))
 
     /* Public Functions */
-    def build(points: Iterable[Point]): Unit = points.foreach(insert)
+    def build(elements: Iterable[Element]): Unit = elements.foreach(insert)
 
-    def insert(point: Point): Node = {
+    def insert(elem: Element): Node = {
       def split(): Unit = {
         topLeft = new Node(K, topLeftBounds)
         bottomLeft = new Node(K, bottomLeftBounds)
         topRight = new Node(K, topRightBounds)
         bottomRight = new Node(K, bottomRightBounds)
-        elements.foreach(p => findSubtree(p).insert(p))
+        elements.foreach(e => findSubtree(e.position).insert(e))
         elements.clear()
       }
 
@@ -67,19 +68,19 @@ class QuadTree[A](K: Int = 2) {
       }
 
       def insertElement(): Unit = {
-        if (!elements.contains(point)) elements += point
+        if (!elements.exists(_.position == elem.position)) elements += elem
         if (elements.size > K) split()
       }
 
       // Check if bounds, else recursively expand
-      if (!bounds.contains(point)) {
-        return expand().insert(point)
+      if (!bounds.contains(elem.position)) {
+        return expand().insert(elem)
       }
 
       if (isLeaf)
         insertElement()
       else
-        findSubtree(point).insert(point)
+        findSubtree(elem.position).insert(elem)
 
       this
     }
@@ -88,7 +89,7 @@ class QuadTree[A](K: Int = 2) {
       def mustCollapse = !isLeaf && children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
 
       def collapse(): Unit ={
-        elements = children.foldLeft(ListBuffer[Point]()) { _ ++ _.elements}
+        elements = children.foldLeft(ListBuffer[Element]()) { _ ++ _.elements}
         topLeft = null
         topRight = null
         bottomLeft = null
@@ -96,11 +97,11 @@ class QuadTree[A](K: Int = 2) {
       }
 
       def removeElement(): Boolean = {
-        val containsPoint = elements.contains(point)
-        if (containsPoint)
-          elements -= point
+        val i = elements.indexWhere(_.position == point)
+        if (i != -1)
+          elements.remove(i)
 
-        containsPoint
+        i != -1  // Returns true if element removed
       }
 
       if(!bounds.contains(point))
@@ -117,46 +118,45 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def update(point: Point): Boolean = {
+    def update(elem: Element): Boolean = {
       def updateElement(): Boolean = {
-        val i = elements.indexOf(point)
+        val i = elements.indexWhere(_.position == elem.position)
 
-        if(i == -1) {
-          false
-        } else {
-          println("No data for update yet")
-          true //elements(i) =
+        if(i != -1) {
+          elements(i) = elem
         }
+        i != -1
       }
 
-      if (!bounds.contains(point)) {
+      if (!bounds.contains(elem.position)) {
         false
       } else if (isLeaf) {
         updateElement()
       } else {
-        findSubtree(point).update(point)
+        findSubtree(elem.position).update(elem)
       }
     }
 
-    def search(point: Point): Boolean = {
+    def search(point: Point): Option[A] = {
       if (!bounds.contains(point)) {
-        false
+        null
       } else if (isLeaf) {
-        elements.contains(point)
+        elements.find(_.position == point).map(_.data)
       } else {
         findSubtree(point).search(point)
       }
     }
 
-    def rangeSearch(fromPoint: Point, toPoint: Point): ListBuffer[Point] = {
-      if(!(fromPoint <= toPoint)) return new ListBuffer[Point]
+    def rangeSearch(fromPoint: Point, toPoint: Point): ListBuffer[A] = {
+      if(!(fromPoint <= toPoint)) return new ListBuffer[A]
 
       if(isLeaf){
-        elements.filter(p => p >= fromPoint && p <= toPoint)
+        elements.filter(e => e.position >= fromPoint && e.position <= toPoint)
+          .map(_.data)
       }
       else{
         children.filter(_.bounds.overlaps(Box(fromPoint, toPoint)))
-          .foldLeft(ListBuffer[Point]()) { _ ++ _.rangeSearch(fromPoint, toPoint)}
+          .foldLeft(ListBuffer[A]()) { _ ++ _.rangeSearch(fromPoint, toPoint)}
       }
     }
 
