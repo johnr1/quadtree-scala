@@ -1,20 +1,21 @@
-
 object Main extends App {
-  if(Tests.testInsertions()){
-    println("Passed insertion test")
-  } else {
-    println("!!! Insertion Tests failed. Structure not correct !!!")
+  def runTest( test: () => Boolean, testTitle: String ): Unit = {
+    if (test())
+      println("Passed " + testTitle + " Test")
+    else
+      println("!!! " + testTitle + " Tests failed. Structure not correct !!!")
   }
 
-  if(Tests.testRemovals()){
-    println("Passed removal test")
-  } else {
-    println("!!! Removal Tests failed. Structure not correct !!!")
-  }
+  val tests = Array(
+    (Tests.testInsertions _ , "Insertion"),
+    (Tests.testRemovals _ , "Removal"),
+    (Tests.testUpdates _ , "Update"),
+    (Tests.testRangeSearch _ , "Range Search"),
+  )
 
-//  if(Tests.testRangeSearch()){
-//    println("Passed rangeSearch test")
-//  } else {
-//    println("!!! RangeSearch Tests failed. Structure not correct !!!")
-//  }
+  for(_ <- 0 to 10) {
+    for (t <- tests) {
+      runTest(t._1, t._2)
+    }
+  }
 }
