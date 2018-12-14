@@ -22,7 +22,7 @@ class QuadTree[A](K: Int = 2) {
   def remove(p: Point): Unit = root.remove(p)
   def search(p: Point): Boolean = root.search(p)
   def update(p: Point): Unit = root.update(p)
-  def rangeSearch(p1: Point, p2: Point): ListBuffer[Point] = root.rangeSearch(p1, p2)
+  def rangeSearch(fromPoint: Point, toPoint: Point): ListBuffer[Point] = root.rangeSearch(fromPoint, toPoint)
   def kNNSearch(p: Point): Unit = root.kNNSearch(p)
 
   class Node(K: Int, var bounds: Box = null) {
@@ -148,15 +148,15 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def rangeSearch(p1: Point, p2: Point): ListBuffer[Point] = {
-      if(!(p1 <= p2)) return new ListBuffer[Point]
+    def rangeSearch(fromPoint: Point, toPoint: Point): ListBuffer[Point] = {
+      if(!(fromPoint <= toPoint)) return new ListBuffer[Point]
 
       if(isLeaf){
-        elements.filter(p => p >= p1 && p <= p2)
+        elements.filter(p => p >= fromPoint && p <= toPoint)
       }
       else{
-        children.filter(_.bounds.overlaps(Box(p1, p2)))
-          .foldLeft(ListBuffer[Point]()) { _ ++ _.rangeSearch(p1, p2)}
+        children.filter(_.bounds.overlaps(Box(fromPoint, toPoint)))
+          .foldLeft(ListBuffer[Point]()) { _ ++ _.rangeSearch(fromPoint, toPoint)}
       }
     }
 
