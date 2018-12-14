@@ -5,6 +5,31 @@ import scala.util.Random
 object Tests {
   val r: Random.type = scala.util.Random
 
+  def testBuild(): Boolean ={
+    val ELEMENTS_TO_INSERT = 50000
+    val tree = new QuadTree[Int]()
+    var elements = mutable.HashMap[Point, Int]()
+
+    for(_ <- 0 to ELEMENTS_TO_INSERT) {
+      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val d = r.nextInt()
+      elements += p -> d
+    }
+
+    tree.build(elements.toList)
+
+    for (e <- elements){
+      val res = tree.search(e._1)
+      if(res.isEmpty || tree.search(e._1).get != e._2){
+        println("Error, wrong data returned for point: " + e._1)
+        return false
+      }
+    }
+
+    elements.clear()
+    true
+  }
+
   def testInsertions(): Boolean ={
     val ELEMENTS_TO_INSERT = 50000
     val tree = new QuadTree[Int]()
@@ -24,6 +49,7 @@ object Tests {
         return false
       }
     }
+
 
     elements.clear()
     true

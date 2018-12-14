@@ -7,13 +7,14 @@ object Main extends App {
   }
 
   val tests = Array(
+    (Tests.testBuild _ , "Build"),
     (Tests.testInsertions _ , "Insertion"),
     (Tests.testRemovals _ , "Removal"),
     (Tests.testUpdates _ , "Update"),
     (Tests.testRangeSearch _ , "Range Search"),
   )
 
-  for(_ <- 0 to 10) {
+  for(_ <- 0 to 2) {
     for (t <- tests) {
       runTest(t._1, t._2)
     }
