@@ -28,13 +28,13 @@ class QuadTree[A](K: Int = 2) {
   case class Element(position: Point, data: A)
   private var root = new Node(K, Box(Point(-1000, -1000), Point(1000, 1000)))
 
-  def build(elements: Iterable[(Point, A)]): Unit = {elements.foreach( e => root = root.insert(Element(e._1, e._2)) )}
-  def insert(p: Point, data: A): Unit = {root = root.insert(Element(p, data))}
+  def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
+  def insert(p: Point, data: A): Unit =   {root = root.insert(Element(p, data))}
   def remove(p: Point): Boolean = root.remove(p)
   def search(p: Point): Option[A] = root.search(p)
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
-  def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos)
-  def kNNSearch(p: Point): ListBuffer[(Point, A)] = root.kNNSearch(p)
+  def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos).map(Element.unapply(_).get)
+  def kNNSearch(p: Point): ListBuffer[(Point, A)] = root.kNNSearch(p).map(Element.unapply(_).get)
 
   class Node(K: Int, var bounds: Box = null) {
     var topLeft: Node = _
@@ -143,21 +143,20 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = {
-      if(!(fromPos <= toPos)) return new ListBuffer[(Point, A)]
+    def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[Element] = {
+      if(!(fromPos <= toPos)) return new ListBuffer[Element]
 
       if(isLeaf){
         elements.filter(e => e.position >= fromPos && e.position <= toPos)
-          .map(e => (e.position, e.data))
       }
       else{
         children.filter(_.bounds.overlaps(Box(fromPos, toPos)))
-          .foldLeft(ListBuffer[(Point, A)]()) { _ ++ _.rangeSearch(fromPos, toPos)}
+          .foldLeft(ListBuffer[Element]()) { _ ++ _.rangeSearch(fromPos, toPos)}
       }
     }
 
-    def kNNSearch(point: Point): ListBuffer[(Point, A)] = {
-      new ListBuffer[(Point, A)]()
+    def kNNSearch(point: Point): ListBuffer[Element] = {
+      new ListBuffer[Element]()
       throw new NotImplementedError("kNNSearch not implemented yet")
     }
 
