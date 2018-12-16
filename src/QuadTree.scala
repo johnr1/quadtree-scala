@@ -10,20 +10,24 @@ case class Point(var x: Double, var y: Double) {
   def <= (other: Point): Boolean = x <= other.x && y <= other.y
   def >= (other: Point): Boolean = x >= other.x && y >= other.y
   def distance(other: Point): Double = pow(x - other.x, 2) + pow(y - other.y, 2)
+  def distance(rect: Box): Double = 0
+  def avg(other: Point): Point = Point((x + other.x) / 2, (y + other.y) / 2)
 }
 
-case class Box(lowerBound: Point, upperBound: Point){
-  def center = Point((upperBound.x + lowerBound.x) / 2, (upperBound.y + lowerBound.y) / 2)
-  def contains(p: Point): Boolean = p > lowerBound && p <= upperBound
-  def overlaps(b: Box): Boolean = lowerBound <= b.upperBound && upperBound >= b.lowerBound
+case class Box(var center: Point, var halfDim: Double){
+  var topLeftPoint: Point = Point(center.x + halfDim, center.y - halfDim)
+  var topRightPoint: Point = Point(center.x + halfDim, center.y + halfDim)
+  var bottomLeftPoint: Point = Point(center.x - halfDim, center.y - halfDim)
+  var bottomRightPoint: Point = Point(center.x - halfDim, center.y + halfDim)
 
-  def topLeftPoint: Point = Point(lowerBound.x, upperBound.y)
-  def bottomRightPoint: Point= Point(upperBound.x, lowerBound.y)
+  def topLeftSubBox: Box = Box(center.avg(topLeftPoint), halfDim/2)
+  def topRightSubBox: Box = Box(center.avg(topRightPoint), halfDim/2)
+  def bottomLeftSubBox: Box = Box(center.avg(bottomLeftPoint), halfDim/2)
+  def bottomRightSubBox: Box = Box(center.avg(bottomRightPoint), halfDim/2)
 
-  def topRightSubBox: Box = Box(center, upperBound)
-  def bottomLeftSubBox: Box = Box(lowerBound, center)
-  def topLeftSubBox: Box = Box( Point(lowerBound.x, center.y) , Point(center.x, upperBound.y) )
-  def bottomRightSubBox: Box = Box( Point(center.x, lowerBound.y) , Point(upperBound.x, center.y) )
+  def contains(p: Point): Boolean = p > bottomLeftPoint && p <= topRightPoint
+  def overlaps(r: Box): Boolean = bottomLeftPoint <= r.topRightPoint && topRightPoint >= r.bottomLeftPoint
+  def overlaps(lowerBound: Point, upperBound: Point): Boolean = bottomLeftPoint <= upperBound && topRightPoint >= lowerBound
 }
 
 
@@ -32,7 +36,7 @@ case class Box(lowerBound: Point, upperBound: Point){
 // QUAD TREE
 class QuadTree[A](K: Int = 2) {
   case class Element(position: Point, data: A)
-  private var root = new Node(K, Box(Point(-1000, -1000), Point(1000, 1000)))
+  private var root = new Node(K, new Box(Point(0, 0), 500))
 
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
   def insert(p: Point, data: A): Unit =   {root = root.insert(Element(p, data))}
@@ -40,7 +44,16 @@ class QuadTree[A](K: Int = 2) {
   def search(p: Point): Option[A] = root.search(p)
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
   def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos).map(Element.unapply(_).get)
-  def kNNSearch(p: Point, Knn: Integer): ListBuffer[(Point, A)] = root.kNNSearch(p, Knn).map(Element.unapply(_).get)
+
+  def kNNSearch(p: Point, Knn: Integer): ListBuffer[(Point, A)] = {
+    object distanceOrdering extends Ordering[Element] {
+      def compare(a: Element, b: Element) = a.position.distance(p) compare b.position.distance(p)
+    }
+
+    var knnElements = new mutable.PriorityQueue[Element]()(distanceOrdering)
+    root.kNNSearch(p, Knn, knnElements)
+    knnElements.to[ListBuffer].map(Element.unapply(_).get)
+  }
 
   class Node(K: Int, var bounds: Box = null) {
     var topLeft: Node = _
@@ -178,7 +191,7 @@ class QuadTree[A](K: Int = 2) {
       }
       else{
         children
-          .filter(_.bounds.overlaps(Box(fromPos, toPos)))
+          .filter(_.bounds.overlaps(fromPos, toPos))
           .foldLeft(ListBuffer[Element]()) { _ ++ _.rangeSearch(fromPos, toPos)}
       }
     }
@@ -188,35 +201,35 @@ class QuadTree[A](K: Int = 2) {
       // Add distance caluclation between box and point
       // Exploring potential node is not ordered. Some have more potential than others
 
-      def explorePotentialNode(n: Node): Unit = {
-        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || n.bounds.distance(point) < itemsSoFar.head.position.distance(point)
-
-        if (shouldExplore(n))
-          n.kNNSearch(point, Knn, itemsSoFar)
-      }
-
-      def addPotentialElement(e: Element): Unit = {
-        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
-
-        if (isPotentialNN(e)) {
-          itemsSoFar.enqueue(e)
-          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
-        }
-      }
-
-
-      if(isLeaf){
-        elements.foreach(addPotentialElement)
-      }
-      else if(bounds.contains(point)){
-        val diveNode = findSubtree(point)
-        diveNode.kNNSearch(point, Knn, itemsSoFar)
-        children.filterNot(_ == diveNode).foreach(explorePotentialNode)
-      }
-      else {
-        children.foreach(explorePotentialNode)
-      }
-
+//      def explorePotentialNode(n: Node): Unit = {
+//        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || point.distance(n.bounds) < itemsSoFar.head.position.distance(point)
+//
+//        if (shouldExplore(n))
+//          n.kNNSearch(point, Knn, itemsSoFar)
+//      }
+//
+//      def addPotentialElement(e: Element): Unit = {
+//        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
+//
+//        if (isPotentialNN(e)) {
+//          itemsSoFar.enqueue(e)
+//          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
+//        }
+//      }
+//
+//
+//      if(isLeaf){
+//        elements.foreach(addPotentialElement)
+//      }
+//      else if(bounds.contains(point)){
+//        val diveNode = findSubtree(point)
+//        diveNode.kNNSearch(point, Knn, itemsSoFar)
+//        children.filterNot(_ == diveNode).foreach(explorePotentialNode)
+//      }
+//      else {
+//        children.foreach(explorePotentialNode)
+//      }
+//
       new ListBuffer[Element]()
     }
 
