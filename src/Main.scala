@@ -14,6 +14,7 @@ object Main extends App {
     (Tests.testRangeSearch _ , "Range Search"),
   )
 
+
   for(_ <- 0 to 2) {
     for (t <- tests) {
       runTest(t._1, t._2)

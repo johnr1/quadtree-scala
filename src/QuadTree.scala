@@ -1,6 +1,6 @@
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.math.pow
+import scala.math.{pow, max, abs}
 
 // FUNDAMENTAL DATA CLASSES
 // Comparison <op>, returns true if both x and y are true for <op>
@@ -9,9 +9,13 @@ case class Point(var x: Double, var y: Double) {
   def > (other: Point): Boolean = x > other.x && y > other.y
   def <= (other: Point): Boolean = x <= other.x && y <= other.y
   def >= (other: Point): Boolean = x >= other.x && y >= other.y
-  def distance(other: Point): Double = pow(x - other.x, 2) + pow(y - other.y, 2)
-  def distance(rect: Box): Double = 0
   def avg(other: Point): Point = Point((x + other.x) / 2, (y + other.y) / 2)
+  def distance(other: Point): Double = pow(x - other.x, 2) + pow(y - other.y, 2)
+  def distance(box: Box): Double = {
+    val dx = max(abs(x - box.center.x) - box.halfDim , 0)
+    val dy = max(abs(y - box.center.y) - box.halfDim , 0)
+    pow(dx, 2) + pow(dy, 2)
+  }
 }
 
 case class Box(var center: Point, var halfDim: Double){
@@ -33,11 +37,11 @@ case class Box(var center: Point, var halfDim: Double){
 
 
 
-// QUAD TREE
 class QuadTree[A](K: Int = 2) {
   case class Element(position: Point, data: A)
-  private var root = new Node(K, new Box(Point(0, 0), 500))
+  private var root = new Node(K, Box(Point(0, 0), 500))
 
+  // Public interface callers, Work is done mostly inside Node Class
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
   def insert(p: Point, data: A): Unit =   {root = root.insert(Element(p, data))}
   def remove(p: Point): Boolean = root.remove(p)
@@ -47,10 +51,10 @@ class QuadTree[A](K: Int = 2) {
 
   def kNNSearch(p: Point, Knn: Integer): ListBuffer[(Point, A)] = {
     object distanceOrdering extends Ordering[Element] {
-      def compare(a: Element, b: Element) = a.position.distance(p) compare b.position.distance(p)
+      def compare(a: Element, b: Element): Int = a.position.distance(p) compare b.position.distance(p)
     }
 
-    var knnElements = new mutable.PriorityQueue[Element]()(distanceOrdering)
+    val knnElements = new mutable.PriorityQueue[Element]()(distanceOrdering)
     root.kNNSearch(p, Knn, knnElements) // populates knnElements
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
@@ -175,41 +179,37 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def kNNSearch(point: Point, Knn: Integer, itemsSoFar: mutable.PriorityQueue[Element]): ListBuffer[Element] = {
-      // dont forget to add ordering to the priority queue
-      // Add distance caluclation between box and point
-      // Exploring potential node is not ordered. Some have more potential than others
+    def kNNSearch(point: Point, Knn: Integer, itemsSoFar: mutable.PriorityQueue[Element]): Unit = {
 
-//      def explorePotentialNode(n: Node): Unit = {
-//        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || point.distance(n.bounds) < itemsSoFar.head.position.distance(point)
-//
-//        if (shouldExplore(n))
-//          n.kNNSearch(point, Knn, itemsSoFar)
-//      }
-//
-//      def addPotentialElement(e: Element): Unit = {
-//        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
-//
-//        if (isPotentialNN(e)) {
-//          itemsSoFar.enqueue(e)
-//          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
-//        }
-//      }
-//
-//
-//      if(isLeaf){
-//        elements.foreach(addPotentialElement)
-//      }
-//      else if(bounds.contains(point)){
-//        val diveNode = findSubtree(point)
-//        diveNode.kNNSearch(point, Knn, itemsSoFar)
-//        children.filterNot(_ == diveNode).foreach(explorePotentialNode)
-//      }
-//      else {
-//        children.foreach(explorePotentialNode)
-//      }
-//
-      new ListBuffer[Element]()
+      def explorePotentialNode(n: Node): Unit = {
+        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || point.distance(n.bounds) < itemsSoFar.head.position.distance(point)
+
+        if (shouldExplore(n))
+          n.kNNSearch(point, Knn, itemsSoFar)
+      }
+
+      def addPotentialElement(e: Element): Unit = {
+        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
+
+        if (isPotentialNN(e)) {
+          itemsSoFar.enqueue(e)
+          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
+        }
+      }
+
+      println("Explored node with bounds: " + bounds)
+
+      if(isLeaf){
+        elements.foreach(addPotentialElement)
+      }
+      else if(bounds.contains(point)){
+        val diveNode = findSubtree(point)
+        diveNode.kNNSearch(point, Knn, itemsSoFar)
+        children.filterNot(_ == diveNode).foreach(explorePotentialNode)
+      }
+      else {
+        children.foreach(explorePotentialNode)
+      }
     }
 
 
