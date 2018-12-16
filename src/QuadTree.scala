@@ -1,18 +1,24 @@
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.math.pow
 
 // FUNDAMENTAL DATA CLASSES
 // Comparison <op>, returns true if both x and y are true for <op>
 case class Point(var x: Double, var y: Double) {
-  def < (p: Point): Boolean = x < p.x && y < p.y
-  def > (p: Point): Boolean = x > p.x && y > p.y
-  def <= (p: Point): Boolean = x <= p.x && y <= p.y
-  def >= (p: Point): Boolean = x >= p.x && y >= p.y
+  def < (other: Point): Boolean = x < other.x && y < other.y
+  def > (other: Point): Boolean = x > other.x && y > other.y
+  def <= (other: Point): Boolean = x <= other.x && y <= other.y
+  def >= (other: Point): Boolean = x >= other.x && y >= other.y
+  def distance(other: Point): Double = pow(x - other.x, 2) + pow(y - other.y, 2)
 }
 
 case class Box(lowerBound: Point, upperBound: Point){
   def center = Point((upperBound.x + lowerBound.x) / 2, (upperBound.y + lowerBound.y) / 2)
   def contains(p: Point): Boolean = p > lowerBound && p <= upperBound
   def overlaps(b: Box): Boolean = lowerBound <= b.upperBound && upperBound >= b.lowerBound
+
+  def topLeftPoint: Point = Point(lowerBound.x, upperBound.y)
+  def bottomRightPoint: Point= Point(upperBound.x, lowerBound.y)
 
   def topRightSubBox: Box = Box(center, upperBound)
   def bottomLeftSubBox: Box = Box(lowerBound, center)
@@ -34,7 +40,7 @@ class QuadTree[A](K: Int = 2) {
   def search(p: Point): Option[A] = root.search(p)
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
   def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos).map(Element.unapply(_).get)
-  def kNNSearch(p: Point): ListBuffer[(Point, A)] = root.kNNSearch(p).map(Element.unapply(_).get)
+  def kNNSearch(p: Point, Knn: Integer): ListBuffer[(Point, A)] = root.kNNSearch(p, Knn).map(Element.unapply(_).get)
 
   class Node(K: Int, var bounds: Box = null) {
     var topLeft: Node = _
@@ -61,7 +67,27 @@ class QuadTree[A](K: Int = 2) {
 
       def expand(): Node = {
         throw new NotImplementedError("Expanding not implemented yet.")
-        this
+
+//        var newRootBoundCandidates: ListBuffer[Box] = _
+//        var newRootBounds = newRootBoundCandidates.reduce((b1, b2) => if (b1.center.distance(elem.position) > b2.center.distance(elem.position)) b2 else b1)
+//        var newRoot = new Node(K, newRootBounds)
+//        newRoot.topLeft = new Node(K, newRootBounds.topLeftSubBox)
+//        newRoot.bottomLeft = new Node(K, newRootBounds.bottomLeftSubBox)
+//        newRoot.topRight = new Node(K, newRootBounds.topRightSubBox)
+//        newRoot.bottomRight = new Node(K, newRootBounds.bottomRightSubBox)
+//        val replacementCandidate = newRoot.findSubtree(bounds.center)
+//
+//        if(replacementCandidate == newRoot.topLeft){
+//          newRoot.topLeft = this
+//        } else if (replacementCandidate == newRoot.topRight){
+//          newRoot.topRight = this
+//        } else if (replacementCandidate == newRoot.bottomLeft){
+//          newRoot.bottomLeft = this
+//        } else if (replacementCandidate == newRoot.bottomRight) {
+//          newRoot.bottomRight = this
+//        }
+//
+//        newRoot
       }
 
       def insertElement(): Unit = {
@@ -155,9 +181,43 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def kNNSearch(point: Point): ListBuffer[Element] = {
+    def kNNSearch(point: Point, Knn: Integer, itemsSoFar: mutable.PriorityQueue[Element]): ListBuffer[Element] = {
+      // dont forget to add ordering to the priority queue
+      // Add distance caluclation between box and point
+
+      def shouldExplore(n: Node): Boolean =
+        itemsSoFar.length < Knn || n.bounds.distance(point) < itemsSoFar.head.position.distance(point)
+
+      def isPotentialNN(e: Element): Boolean =
+        itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
+
+
+      def addLeafElements(): Unit = {
+        for(e <- elements)
+          if(isPotentialNN(e)) {
+            itemsSoFar.enqueue(e)
+            if(itemsSoFar.length > Knn) itemsSoFar.dequeue()
+          }
+      }
+
+      var nodesToExplore = children
+
+      if(isLeaf){
+        addLeafElements()
+        return
+      }
+      else if(bounds.contains(point)){
+        val diveNode = findSubtree(point)
+        diveNode.kNNSearch(point, Knn, itemsSoFar)
+        nodesToExplore = nodesToExplore.filterNot(_ == diveNode)
+      }
+
+      for(n <- nodesToExplore) {
+        if (shouldExplore(n))
+          n.kNNSearch(point, Knn, itemsSoFar)
+      }
+
       new ListBuffer[Element]()
-      throw new NotImplementedError("kNNSearch not implemented yet")
     }
 
 
