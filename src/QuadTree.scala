@@ -51,7 +51,7 @@ class QuadTree[A](K: Int = 2) {
     }
 
     var knnElements = new mutable.PriorityQueue[Element]()(distanceOrdering)
-    root.kNNSearch(p, Knn, knnElements)
+    root.kNNSearch(p, Knn, knnElements) // populates knnElements
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
 
@@ -81,27 +81,6 @@ class QuadTree[A](K: Int = 2) {
 
       def expand(): Node = {
         throw new NotImplementedError("Expanding not implemented yet.")
-
-//        var newRootBoundCandidates: ListBuffer[Box] = _
-//        var newRootBounds = newRootBoundCandidates.reduce((b1, b2) => if (b1.center.distance(elem.position) > b2.center.distance(elem.position)) b2 else b1)
-//        var newRoot = new Node(K, newRootBounds)
-//        newRoot.topLeft = new Node(K, newRootBounds.topLeftSubBox)
-//        newRoot.bottomLeft = new Node(K, newRootBounds.bottomLeftSubBox)
-//        newRoot.topRight = new Node(K, newRootBounds.topRightSubBox)
-//        newRoot.bottomRight = new Node(K, newRootBounds.bottomRightSubBox)
-//        val replacementCandidate = newRoot.findSubtree(bounds.center)
-//
-//        if(replacementCandidate == newRoot.topLeft){
-//          newRoot.topLeft = this
-//        } else if (replacementCandidate == newRoot.topRight){
-//          newRoot.topRight = this
-//        } else if (replacementCandidate == newRoot.bottomLeft){
-//          newRoot.bottomLeft = this
-//        } else if (replacementCandidate == newRoot.bottomRight) {
-//          newRoot.bottomRight = this
-//        }
-//
-//        newRoot
       }
 
       def insertElement(): Unit = {
