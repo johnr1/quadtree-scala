@@ -185,40 +185,39 @@ class QuadTree[A](K: Int = 2) {
       // dont forget to add ordering to the priority queue
       // Add distance caluclation between box and point
 
-      def shouldExplore(n: Node): Boolean =
-        itemsSoFar.length < Knn || n.bounds.distance(point) < itemsSoFar.head.position.distance(point)
+      def explorePotentialNode(n: Node): Unit = {
+        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || n.bounds.distance(point) < itemsSoFar.head.position.distance(point)
 
-      def isPotentialNN(e: Element): Boolean =
-        itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
-
-
-      def addLeafElements(): Unit = {
-        for(e <- elements)
-          if(isPotentialNN(e)) {
-            itemsSoFar.enqueue(e)
-            if(itemsSoFar.length > Knn) itemsSoFar.dequeue()
-          }
-      }
-
-      var nodesToExplore = children
-
-      if(isLeaf){
-        addLeafElements()
-        return
-      }
-      else if(bounds.contains(point)){
-        val diveNode = findSubtree(point)
-        diveNode.kNNSearch(point, Knn, itemsSoFar)
-        nodesToExplore = nodesToExplore.filterNot(_ == diveNode)
-      }
-
-      for(n <- nodesToExplore) {
         if (shouldExplore(n))
           n.kNNSearch(point, Knn, itemsSoFar)
       }
 
+      def addPotentialElement(e: Element): Unit = {
+        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
+
+        if (isPotentialNN(e)) {
+          itemsSoFar.enqueue(e)
+          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
+        }
+      }
+
+
+
+      if(isLeaf){
+        elements.foreach(addPotentialElement)
+      }
+      else if(bounds.contains(point)){
+        val diveNode = findSubtree(point)
+        diveNode.kNNSearch(point, Knn, itemsSoFar)
+        children.filterNot(_ == diveNode).foreach(explorePotentialNode)
+      }
+      else {
+        children.foreach(explorePotentialNode)
+      }
+
       new ListBuffer[Element]()
     }
+
 
 
     private def findSubtree(p: Point): Node = {
