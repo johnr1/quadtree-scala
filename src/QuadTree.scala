@@ -9,7 +9,7 @@ case class Point(var x: Double, var y: Double) {
   def > (other: Point): Boolean = x > other.x && y > other.y
   def <= (other: Point): Boolean = x <= other.x && y <= other.y
   def >= (other: Point): Boolean = x >= other.x && y >= other.y
-  def avg(other: Point): Point = Point((x + other.x) / 2, (y + other.y) / 2)
+  def mid(other: Point): Point = Point((x + other.x) / 2, (y + other.y) / 2)
   def distance(other: Point): Double = pow(x - other.x, 2) + pow(y - other.y, 2)
   def distance(box: Box): Double = {
     val dx = max(abs(x - box.center.x) - box.halfDim , 0)
@@ -24,10 +24,10 @@ case class Box(var center: Point, var halfDim: Double){
   var bottomLeftPoint: Point = Point(center.x - halfDim, center.y - halfDim)
   var bottomRightPoint: Point = Point(center.x - halfDim, center.y + halfDim)
 
-  def topLeftSubBox: Box = Box(center.avg(topLeftPoint), halfDim/2)
-  def topRightSubBox: Box = Box(center.avg(topRightPoint), halfDim/2)
-  def bottomLeftSubBox: Box = Box(center.avg(bottomLeftPoint), halfDim/2)
-  def bottomRightSubBox: Box = Box(center.avg(bottomRightPoint), halfDim/2)
+  def topLeftSubBox: Box = Box(center.mid(topLeftPoint), halfDim/2)
+  def topRightSubBox: Box = Box(center.mid(topRightPoint), halfDim/2)
+  def bottomLeftSubBox: Box = Box(center.mid(bottomLeftPoint), halfDim/2)
+  def bottomRightSubBox: Box = Box(center.mid(bottomRightPoint), halfDim/2)
 
   def contains(p: Point): Boolean = p > bottomLeftPoint && p <= topRightPoint
   def overlaps(r: Box): Boolean = bottomLeftPoint <= r.topRightPoint && topRightPoint >= r.bottomLeftPoint
@@ -49,13 +49,15 @@ class QuadTree[A](K: Int = 2) {
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
   def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos).map(Element.unapply(_).get)
 
-  def kNNSearch(p: Point, Knn: Integer): ListBuffer[(Point, A)] = {
+  def knnSearch(p: Point, k: Integer): ListBuffer[(Point, A)] = {
+    if (k <= 0) return new ListBuffer[(Point, A)]()
+
     object distanceOrdering extends Ordering[Element] {
       def compare(a: Element, b: Element): Int = a.position.distance(p) compare b.position.distance(p)
     }
 
     val knnElements = new mutable.PriorityQueue[Element]()(distanceOrdering)
-    root.kNNSearch(p, Knn, knnElements) // populates knnElements
+    root.knnSearch(p, k, knnElements) // populates knnElements
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
 
@@ -179,32 +181,30 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    def kNNSearch(point: Point, Knn: Integer, itemsSoFar: mutable.PriorityQueue[Element]): Unit = {
-
+    def knnSearch(point: Point, k: Integer, elementsSoFar: mutable.PriorityQueue[Element]): Unit = {
       def explorePotentialNode(n: Node): Unit = {
-        def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || point.distance(n.bounds) < itemsSoFar.head.position.distance(point)
+        def shouldExplore(n: Node): Boolean = elementsSoFar.length < k || point.distance(n.bounds) < elementsSoFar.head.position.distance(point)
 
         if (shouldExplore(n))
-          n.kNNSearch(point, Knn, itemsSoFar)
+          n.knnSearch(point, k, elementsSoFar)
       }
 
       def addPotentialElement(e: Element): Unit = {
-        def isPotentialNN(e: Element): Boolean = itemsSoFar.length < Knn || e.position.distance(point) < itemsSoFar.head.position.distance(point)
+        def isPotentialNN(e: Element): Boolean = elementsSoFar.length < k || e.position.distance(point) < elementsSoFar.head.position.distance(point)
 
         if (isPotentialNN(e)) {
-          itemsSoFar.enqueue(e)
-          if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
+          elementsSoFar.enqueue(e)
+          if (elementsSoFar.length > k) elementsSoFar.dequeue()
         }
       }
 
-      println("Explored node with bounds: " + bounds)
 
       if(isLeaf){
         elements.foreach(addPotentialElement)
       }
       else if(bounds.contains(point)){
         val diveNode = findSubtree(point)
-        diveNode.kNNSearch(point, Knn, itemsSoFar)
+        diveNode.knnSearch(point, k, elementsSoFar)
         children.filterNot(_ == diveNode).foreach(explorePotentialNode)
       }
       else {
