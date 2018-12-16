@@ -61,6 +61,7 @@ class QuadTree[A](K: Int = 2) {
         bottomLeft = new Node(K, bounds.bottomLeftSubBox)
         topRight = new Node(K, bounds.topRightSubBox)
         bottomRight = new Node(K, bounds.bottomRightSubBox)
+
         elements.foreach(e => findSubtree(e.position).insert(e))
         elements.clear()
       }
@@ -176,7 +177,8 @@ class QuadTree[A](K: Int = 2) {
         elements.filter(e => e.position >= fromPos && e.position <= toPos)
       }
       else{
-        children.filter(_.bounds.overlaps(Box(fromPos, toPos)))
+        children
+          .filter(_.bounds.overlaps(Box(fromPos, toPos)))
           .foldLeft(ListBuffer[Element]()) { _ ++ _.rangeSearch(fromPos, toPos)}
       }
     }
@@ -184,6 +186,7 @@ class QuadTree[A](K: Int = 2) {
     def kNNSearch(point: Point, Knn: Integer, itemsSoFar: mutable.PriorityQueue[Element]): ListBuffer[Element] = {
       // dont forget to add ordering to the priority queue
       // Add distance caluclation between box and point
+      // Exploring potential node is not ordered. Some have more potential than others
 
       def explorePotentialNode(n: Node): Unit = {
         def shouldExplore(n: Node): Boolean = itemsSoFar.length < Knn || n.bounds.distance(point) < itemsSoFar.head.position.distance(point)
@@ -200,7 +203,6 @@ class QuadTree[A](K: Int = 2) {
           if (itemsSoFar.length > Knn) itemsSoFar.dequeue()
         }
       }
-
 
 
       if(isLeaf){
