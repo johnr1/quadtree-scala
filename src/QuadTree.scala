@@ -35,15 +35,21 @@ case class Box(var center: Point, var halfDim: Double){
 }
 
 
-
-
+/**
+  * The Class representing a complete QuadTree, most operations are implemented
+  * inside the inner Node class and called recursively, The outter methods just call
+  * the Node implementations with root as the node.
+  *
+  * @param K Maximum number of elements that can fit inside a leaf node
+  * @tparam A The type of the data saved inside the Tree
+  */
 class QuadTree[A](K: Int = 2) {
   case class Element(position: Point, data: A)
   private var root = new Node(K, Box(Point(0, 0), 500))
 
   // Public interface callers, Work is done mostly inside Node Class
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
-  def insert(p: Point, data: A): Unit =   {root = root.insert(Element(p, data))}
+  def insert(p: Point, data: A): Boolean = root.insert(Element(p, data))
   def remove(p: Point): Boolean = root.remove(p)
   def search(p: Point): Option[A] = root.search(p)
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
@@ -73,8 +79,21 @@ class QuadTree[A](K: Int = 2) {
     def isLeaf: Boolean = topLeft == null
 
 
-    /* Operation Functions */
-    def insert(elem: Element): Node = {
+    /* ===== Operation Functions ===== */
+
+    /**
+      * Inserts the element into the subtree of the node called
+      *
+      * Recursively performs insertion to the QuadTree by
+      * following the correct children nodes. Once a leaf is reached
+      * the Element is inserted. If the number of elements of a leaf node
+      * is more than K, then a split operation is performed, creating 4 more
+      * child nodes and moving the leaf's elements to them.
+      *
+      * @param elem The Element object to be inserted
+      * @return true if insertion took place or false if not
+      */
+    def insert(elem: Element): Boolean = {
       def split(): Unit = {
         topLeft = new Node(K, bounds.topLeftSubBox)
         bottomLeft = new Node(K, bounds.bottomLeftSubBox)
@@ -85,28 +104,39 @@ class QuadTree[A](K: Int = 2) {
         elements.clear()
       }
 
-      def expand(): Node = {
-        throw new NotImplementedError("Expanding not implemented yet.")
+      def insertElement(): Boolean = {
+        var returnValue = false  //Returns true if value actually inserted
+        if (!elements.exists(_.position == elem.position)) {
+          elements += elem
+          returnValue = true
+        }
+        if (elements.size > K)
+          split()
+
+        returnValue
       }
 
-      def insertElement(): Unit = {
-        if (!elements.exists(_.position == elem.position)) elements += elem
-        if (elements.size > K) split()
-      }
-
-      // Check if bounds, else recursively expand
       if (!bounds.contains(elem.position)) {
-        return expand().insert(elem)
+        throw new IllegalArgumentException(s"The position '${elem.position}' is out of QuadTree bounds.")
       }
 
       if (isLeaf)
         insertElement()
       else
         findSubtree(elem.position).insert(elem)
-
-      this
     }
 
+
+    /**
+      * Removes an element from the subtree of the node called
+      *
+      * Recursively performs remove to the correct child of
+      * the QuadTree nodes until it reaches a leaf node. If the leaf
+      * node contains the element with position point, the element is removed
+      *
+      * @param point The position of the element to be removed
+      * @return true if the element is removed, false otherwise
+      */
     def remove(point: Point): Boolean = {
       def mustCollapse = !isLeaf && children.forall(_.isLeaf) && children.foldLeft(0) {_ + _.elements.size} <= K
 
@@ -140,6 +170,16 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
+    /**
+      * Updates the data of an element already existing in the tree
+      *
+      * Recursively calls update to the correct child of the tree nodes
+      * until it reaches a leaf. If the leaf node, contains the an element
+      * with position, point, then it updates it's data.
+      *
+      * @param elem The element to be updates
+      * @return true if update took place, false otherwise
+      */
     def update(elem: Element): Boolean = {
       def updateElement(): Boolean = {
         val i = elements.indexWhere(_.position == elem.position)
@@ -168,6 +208,19 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
+    /**
+      * Performs a range search on the Quadtree
+      *
+      * Recursively calls rangeSearch to all the nodes which overlap
+      * with the boundary formed by the range bounds specified.
+      * When a leaf is reached, it returns a list of the elements inside the
+      * range. While the recursion unravels, the lists as cconcatenated returning
+      * a full list of all the elements in the range inside the tree.
+      *
+      * @param fromPos The {xFrom, yFrom} point of the range search
+      * @param toPos The {xTo, yTo} point of the range search
+      * @return A list of elements inside the specified range.
+      */
     def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[Element] = {
       if(!(fromPos <= toPos)) return new ListBuffer[Element]
 
@@ -180,6 +233,7 @@ class QuadTree[A](K: Int = 2) {
           .foldLeft(ListBuffer[Element]()) { _ ++ _.rangeSearch(fromPos, toPos)}
       }
     }
+
 
     def knnSearch(point: Point, k: Integer, elementsSoFar: mutable.PriorityQueue[Element]): Unit = {
       def explorePotentialNode(n: Node): Unit = {
@@ -213,7 +267,12 @@ class QuadTree[A](K: Int = 2) {
     }
 
 
-
+    /**
+      * Return the child node which bounds, contain the position point
+      *
+      * @param p
+      * @return The child node
+      */
     private def findSubtree(p: Point): Node = {
       // Potential no such element exception
       children.find(_.bounds.contains(p)).get
