@@ -45,7 +45,7 @@ case class Box(var center: Point, var halfDim: Double){
   */
 class QuadTree[A](K: Int = 2) {
   case class Element(position: Point, data: A)
-  private var root = new Node(K, Box(Point(0, 0), 500))
+  private val root = new Node(K, Box(Point(0, 0), 1000))
 
   // Public interface callers, Work is done mostly inside Node Class
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
@@ -66,6 +66,15 @@ class QuadTree[A](K: Int = 2) {
     root.knnSearch(p, k, knnElements) // populates knnElements
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
+
+  def bfsPrint: Unit = root.bfsPrint()
+  def toGraphvizString: String = {
+    var s = "digraph { \n"
+    s += root.toGraphvizFormat
+    s += "} \n"
+    s
+  }
+
 
   class Node(K: Int, var bounds: Box = null) {
     var topLeft: Node = _
@@ -234,7 +243,17 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-
+    /**
+      * Performs knn search on the Quadtree
+      *
+      * It first dives to the node potentially containing the point,
+      * then as the recursion unravels, it visits all sibling nodes, which have
+      * a shortest distance of the further away node.
+      *
+      * @param point The position of the tree to get the kNN
+      * @param k the k NN to return
+      * @param elementsSoFar A Priority Queue, passed and further populate to each recursive call
+      */
     def knnSearch(point: Point, k: Integer, elementsSoFar: mutable.PriorityQueue[Element]): Unit = {
       def explorePotentialNode(n: Node): Unit = {
         def shouldExplore(n: Node): Boolean = elementsSoFar.length < k || point.distance(n.bounds) < elementsSoFar.head.position.distance(point)
@@ -266,11 +285,54 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
+    /**
+      * Visits and prints all tree nodes in BFS order
+      */
+    def bfsPrint(): Unit = {
+      val xBounds = s"(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})"
+      val yBounds = s"(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})"
+      print(s"{$xBounds, $yBounds} -> ")
+
+      for(c <- children){
+        if (c != null) {
+          val xBounds = s"(x: ${c.bounds.bottomLeftPoint.x}, ${c.bounds.topRightPoint.x})"
+          val yBounds = s"(y: ${c.bounds.bottomLeftPoint.y}, ${c.bounds.topRightPoint.y})"
+          print(s"{$xBounds, $yBounds} | ")
+        }
+      }
+
+      for(c <- children){
+        if (c != null) {
+          println()
+          c.bfsPrint()
+        }
+      }
+    }
+
+    /**
+      * Produces a string containing the node relationships
+      * in graphviz dot format
+      */
+    def toGraphvizFormat: String = {
+      var dot = ""
+      for(c <- children){
+        if (c != null) {
+          dot += s""""(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})\\n""" +
+            s"""(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})"""" +
+            s""" -> """ +
+            s""""(x: ${c.bounds.bottomLeftPoint.x}, ${c.bounds.topRightPoint.x})\\n""" +
+            s"""(y: ${c.bounds.bottomLeftPoint.y}, ${c.bounds.topRightPoint.y})" \n"""
+          dot += c.toGraphvizFormat
+        }
+      }
+      dot
+    }
+
 
     /**
       * Return the child node which bounds, contain the position point
       *
-      * @param p
+      * @param p Position
       * @return The child node
       */
     private def findSubtree(p: Point): Node = {

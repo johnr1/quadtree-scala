@@ -11,7 +11,7 @@ object Tests {
     var elements = mutable.HashMap[Point, Int]()
 
     for (_ <- 0 to ELEMENTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       elements += p -> d
     }
@@ -35,7 +35,7 @@ object Tests {
     var elements = mutable.HashMap[Point, Int]()
 
     for (_ <- 0 to ELEMENTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       elements += p -> d
       tree.insert(p, d)
@@ -62,7 +62,7 @@ object Tests {
     var elementsInTree = mutable.HashMap[Point, Int]()
 
     for (_ <- 0 to ELEMENTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       points += p
       elementsInTree += p -> d
@@ -105,7 +105,7 @@ object Tests {
     var elements = mutable.HashMap[Point, Int]()
 
     for (_ <- 0 to ELEMENTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       points += p
       elements += p -> d
@@ -137,15 +137,15 @@ object Tests {
     var points = mutable.HashMap[Point, Int]()
 
     for (_ <- 0 to POINTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       points += p -> d
       tree.insert(p, d)
     }
 
     for (_ <- 0 to RANGE_SEARCHES_TO_RUN) {
-      val p1 = Point(r.nextDouble() % 499, r.nextDouble() % 499)
-      val p2 = Point(p1.x + (r.nextDouble() % 499), p1.y + (r.nextDouble() % 499))
+      val p1 = Point(-450 + 900* r.nextDouble(), -450 + 900* r.nextDouble())
+      val p2 = Point(p1.x + (-450 + 900* r.nextDouble()), p1.y + (-450 + 900* r.nextDouble()))
 
       val filteredPoints = points.filterKeys(p => p >= p1 && p <= p2).toSet
       val treePoints = tree.rangeSearch(p1, p2).toSet
@@ -166,14 +166,14 @@ object Tests {
     var points = mutable.ArrayBuffer[Point]()
 
     for (_ <- 0 to POINTS_TO_INSERT) {
-      val p = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
       val d = r.nextInt()
       points += p
       tree.insert(p, d)
     }
 
     for (i <- 1 to KNN_SEARCHES_TO_RUN) {
-      val sPoint = Point(r.nextDouble() % 999, r.nextDouble() % 999)
+      val sPoint = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
 
       val treePoints = tree.knnSearch(sPoint, i).map(_._1).toSet
       val sortedPoints = points.sortBy(_.distance(sPoint)).take(i).toSet
