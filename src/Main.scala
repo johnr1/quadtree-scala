@@ -1,100 +1,38 @@
-import java.io.{File, PrintWriter}
-
-import scala.collection.mutable.ListBuffer
-import scala.util.Random
-
 object Main extends App {
-
-  /**
-    * Generates a dot file from a given tree
-    */
-  def generateDotFile[A](tree: QuadTree[A], filename: String = "tree.dot"): Unit = {
-    val pw = new PrintWriter(new File(filename))
-    pw.write(tree.toGraphvizString)
-    pw.close()
-  }
-
 
   /**
     * Prints command line usage
     */
   def printUsage: Unit = {
-    println(s"Usage: quadtree Command \n\n" +
+    println(s"Usage: quadtree command \n\n" +
       s"Commands: \n" +
-      s"  run [elements]: Performs insertions, searches, and removals of n elements, returns time took to complete \n" +
-      s"  test [iterations]: Performs and tests all quadtree operations with random data \n" +
-      s"  interactive: loads the greek cities csv file (gr.csv), drops to interactive shell to perform all operations, prints demo information")
+      s"  time [-n elements]: \tPerforms all basic operations (except range search) of n elements, and prints the time to complete \n" +
+      s"  test [-i iterations]: Performs and validates all quadtree operations with random data \n" +
+      s"  demo [-n elements]: \tPerforms a demo of all QuadTree operations with random data. Prints the tree generated in .dot format \n")
   }
 
 
-  /**
-    * Performs an insertion, search and deletion of n elements
-    * @param n The number of elements to generate
-    */
-  def performRun(n: Int = 100000): Unit = {
-    val r: Random.type = scala.util.Random
-
-    val tree = new QuadTree[Int]()
-    val points = new ListBuffer[Point]
-
-    // Generate points
-    for (_ <- 0 to n) {
-      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
-      points += p
-    }
-
-    // Time insertion
-    var t0 = System.nanoTime()
-    for (p <- points) {
-      tree.insert(p, 0)
-    }
-    var time = (System.nanoTime() - t0) / 1e6
-    println(s"Insertion of $n points: $time ms")
-
-    // Time Search
-    t0 = System.nanoTime()
-    for (p <- points) {
-      tree.search(p)
-    }
-    time = (System.nanoTime() - t0) / 1e6
-    println(s"Search of $n points: $time ms")
-
-    // Time removal
-    t0 = System.nanoTime()
-    for (p <- points) {
-      tree.remove(p)
-    }
-    time = (System.nanoTime() - t0) / 1e6
-    println(s"Removal of $n points: $time ms")
-  }
-
-
-  // ****** MAIN FUNCTION BODY ******
-  if(args.length <= 0){
-    val tree = new QuadTree[Int]()
-    val r: Random.type = scala.util.Random
-    for(_ <- 1 to 30){
-      val p = Point(-999 + 1998* r.nextDouble(),-999 + 1998* r.nextDouble())
-      tree.insert(p, 0)
-    }
-    tree.bfsPrint
-    generateDotFile(tree)
-
+  if(args.length <= 0) {
     printUsage
+    Demo.operationsDemo()
   }
-  else if(args(0) == "test"){
+  else if(args(0) == "test") {
     var i = 10
-    if(args.length > 1)
-      i = args(2).toInt
+    if(args.length > 2)  i = args(3).toInt
+    println(s"Running $i iterations of all operation validations.")
     Tests.runAllTests(i)
   }
-  else if(args(0) == "run"){
-    var i = 80000
-    if(args.length > 1)
-      i = args(2).toInt
-      performRun(i)
-  } else if (args(0) == "interactive"){
-    println("Interactive mode not implemented yet")
+  else if(args(0) == "time") {
+    var n = 80000
+    if(args.length > 2) n = args(3).toInt
+    println(s"Performing and timing operations with $n elements.")
+    Demo.basicTimeRun(n)
+  }
+  else if (args(0) == "demo") {
+    var n = 20
+    if(args.length > 2) n = args(3).toInt
+    println(s"Performing a demo of all operations with $n elements.")
+    Demo.operationsDemo(n)
   }
   else {
     printUsage

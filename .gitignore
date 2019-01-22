@@ -3,3 +3,5 @@ out/*
 .idea/uiDesigner.xml
 .idea/encodings.xml
 .attach*
+tree.dot
+tree.png

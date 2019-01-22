@@ -29,7 +29,7 @@ case class Box(var center: Point, var halfDim: Double){
   def bottomLeftSubBox: Box = Box(center.mid(bottomLeftPoint), halfDim/2)
   def bottomRightSubBox: Box = Box(center.mid(bottomRightPoint), halfDim/2)
 
-  def contains(p: Point): Boolean = p > bottomLeftPoint && p <= topRightPoint
+  def contains(p: Point): Boolean = p > bottomLeftPoint && p <= topRightPoint // Paradoxi minimum bounds not contained
   def overlaps(r: Box): Boolean = bottomLeftPoint <= r.topRightPoint && topRightPoint >= r.bottomLeftPoint
   def overlaps(lowerBound: Point, upperBound: Point): Boolean = bottomLeftPoint <= upperBound && topRightPoint >= lowerBound
 }
@@ -37,15 +37,17 @@ case class Box(var center: Point, var halfDim: Double){
 
 /**
   * The Class representing a complete QuadTree, most operations are implemented
-  * inside the inner Node class and called recursively, The outter methods just call
+  * inside the inner Node class and called recursively, The outer methods just call
   * the Node implementations with root as the node.
   *
   * @param K Maximum number of elements that can fit inside a leaf node
+  * @param center The center of the QuadTree
+  * @param halfDim The extension covered in both directions in x and y (the minimum bound is NON inclusive)
   * @tparam A The type of the data saved inside the Tree
   */
-class QuadTree[A](K: Int = 2) {
+class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 1000) {
   case class Element(position: Point, data: A)
-  private val root = new Node(K, Box(Point(0, 0), 1000))
+  private val root = new Node(K, Box(center, halfDim))
 
   // Public interface callers, Work is done mostly inside Node Class
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
@@ -67,7 +69,7 @@ class QuadTree[A](K: Int = 2) {
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
 
-  def bfsPrint: Unit = root.bfsPrint()
+  def bfsPrint: Unit = root.dfsPrint()
   def toGraphvizString: String = {
     var s = "digraph { \n"
     s += root.toGraphvizFormat
@@ -285,49 +287,6 @@ class QuadTree[A](K: Int = 2) {
       }
     }
 
-    /**
-      * Visits and prints all tree nodes in BFS order
-      */
-    def bfsPrint(): Unit = {
-      val xBounds = s"(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})"
-      val yBounds = s"(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})"
-      print(s"{$xBounds, $yBounds} -> ")
-
-      for(c <- children){
-        if (c != null) {
-          val xBounds = s"(x: ${c.bounds.bottomLeftPoint.x}, ${c.bounds.topRightPoint.x})"
-          val yBounds = s"(y: ${c.bounds.bottomLeftPoint.y}, ${c.bounds.topRightPoint.y})"
-          print(s"{$xBounds, $yBounds} | ")
-        }
-      }
-
-      for(c <- children){
-        if (c != null) {
-          println()
-          c.bfsPrint()
-        }
-      }
-    }
-
-    /**
-      * Produces a string containing the node relationships
-      * in graphviz dot format
-      */
-    def toGraphvizFormat: String = {
-      var dot = ""
-      for(c <- children){
-        if (c != null) {
-          dot += s""""(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})\\n""" +
-            s"""(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})"""" +
-            s""" -> """ +
-            s""""(x: ${c.bounds.bottomLeftPoint.x}, ${c.bounds.topRightPoint.x})\\n""" +
-            s"""(y: ${c.bounds.bottomLeftPoint.y}, ${c.bounds.topRightPoint.y})" \n"""
-          dot += c.toGraphvizFormat
-        }
-      }
-      dot
-    }
-
 
     /**
       * Return the child node which bounds, contain the position point
@@ -339,5 +298,59 @@ class QuadTree[A](K: Int = 2) {
       // Potential no such element exception
       children.find(_.bounds.contains(p)).get
     }
-  }
-}
+
+
+    // === UTILITY FUNCTIONS ====
+
+    /**
+      * Visits and prints all tree nodes in DFS order
+      */
+    def dfsPrint(): Unit = {
+      print(s"$this -> ")
+      children.filterNot(_ == null).foreach(c => print(s"$c  |  "))
+      println()
+      children.filterNot(_ == null).foreach(c => c.dfsPrint)
+    }
+
+    /**
+      * Produces a string containing the node relationships
+      * in graphviz dot format
+      */
+    def toGraphvizFormat: String = {
+      var dot = ""
+
+      for(c <- children.filterNot(_ == null)) {
+        dot +=
+          s""" "(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})\\n""" +
+          s"""(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})" """ +
+          s""" -> """ +
+          s""" "(x: ${c.bounds.bottomLeftPoint.x}, ${c.bounds.topRightPoint.x})\\n""" +
+          s"""(y: ${c.bounds.bottomLeftPoint.y}, ${c.bounds.topRightPoint.y})" \n"""
+        dot += c.toGraphvizFormat
+      }
+
+      if(isLeaf){
+        for(e <- elements){
+          dot +=
+              s""" "(x: ${bounds.bottomLeftPoint.x}, ${bounds.topRightPoint.x})\\n""" +
+              s"""(y: ${bounds.bottomLeftPoint.y}, ${bounds.topRightPoint.y})" """ +
+              s""" -> """ +
+              s""" "(${e.position.x}, ${e.position.y})->${e.data}" \n""" +
+              s""" "(${e.position.x}, ${e.position.y})->${e.data}" [shape = record,height=.1] \n"""
+
+        }
+      }
+
+      dot
+    }
+
+    override def toString: String = {
+      val xBounds = s"(x: ${bounds.bottomLeftPoint.x} to ${bounds.topRightPoint.x})"
+      val yBounds = s"(y: ${bounds.bottomLeftPoint.y} to ${bounds.topRightPoint.y})"
+      s"{$xBounds, $yBounds}"
+    }
+
+
+  } // End Node class
+
+} // End QuadTree class
