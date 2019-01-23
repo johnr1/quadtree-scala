@@ -14,7 +14,6 @@ object Main extends App {
 
   if(args.length <= 0) {
     printUsage
-    Demo.operationsDemo()
   }
   else if(args(0) == "test") {
     var i = 10

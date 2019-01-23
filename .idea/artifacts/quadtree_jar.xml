@@ -1,0 +1,12 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="quadtree:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/quadtree_jar</output-path>
+    <root id="archive" name="quadtree.jar">
+      <element id="module-output" name="quadtree" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.12.7.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-reflect/jars/scala-reflect-2.12.7.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.7-sources.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/.ivy2/cache/org.scala-lang/scala-reflect/srcs/scala-reflect-2.12.7-sources.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
