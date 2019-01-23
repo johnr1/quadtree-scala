@@ -17,19 +17,19 @@ object Main extends App {
   }
   else if(args(0) == "test") {
     var i = 10
-    if(args.length > 2)  i = args(3).toInt
+    if(args.length > 2)  i = args(2).toInt
     println(s"Running $i iterations of all operation validations.")
     Tests.runAllTests(i)
   }
   else if(args(0) == "time") {
     var n = 80000
-    if(args.length > 2) n = args(3).toInt
+    if(args.length > 2) n = args(2).toInt
     println(s"Performing and timing operations with $n elements.")
     Demo.basicTimeRun(n)
   }
   else if (args(0) == "demo") {
     var n = 20
-    if(args.length > 2) n = args(3).toInt
+    if(args.length > 2) n = args(2).toInt
     println(s"Performing a demo of all operations with $n elements.")
     Demo.operationsDemo(n)
   }
