@@ -1,10 +1,9 @@
-.idea/workspace.xml
+.idea/*
 out/*
-.idea/uiDesigner.xml
-.idea/encodings.xml
 .attach*
 tree.dot
 tree.png
+tree.plot
 dist/*
 target/
 lib_managed/
