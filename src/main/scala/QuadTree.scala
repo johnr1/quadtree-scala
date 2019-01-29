@@ -51,10 +51,15 @@ class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 100
 
   // Public interface callers, Work is done mostly inside Node Class
   def build(elements: Iterable[(Point, A)]): Unit = elements.foreach( e => insert(e._1, e._2) )
+
   def insert(p: Point, data: A): Boolean = root.insert(Element(p, data))
+
   def remove(p: Point): Boolean = root.remove(p)
+
   def search(p: Point): Option[A] = root.search(p)
+
   def update(p: Point, data: A): Boolean = root.update(Element(p, data))
+
   def rangeSearch(fromPos: Point, toPos: Point): ListBuffer[(Point, A)] = root.rangeSearch(fromPos, toPos).map(Element.unapply(_).get)
 
   def knnSearch(p: Point, k: Integer): ListBuffer[(Point, A)] = {
@@ -69,12 +74,22 @@ class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 100
     knnElements.to[ListBuffer].map(Element.unapply(_).get)
   }
 
-  def bfsPrint: Unit = root.dfsPrint()
+  def dfsPrint: Unit = root.dfsPrint()
+
   def toGraphvizString: String = {
     var s = "digraph { \n"
     s += root.toGraphvizFormat
     s += "} \n"
     s
+  }
+
+  def toGnuPlotString: String = {
+    var plotString: String = ""
+    plotString += s"set xrange [${root.bounds.bottomLeftPoint.x}: ${root.bounds.topRightPoint.x}] \n"
+    plotString += s"set yrange [${root.bounds.bottomLeftPoint.y}: ${root.bounds.topRightPoint.y}] \n"
+    plotString += root.toGnuPlotString
+    plotString += "set key off\nplot 1/0\n"
+    plotString
   }
 
 
@@ -343,6 +358,20 @@ class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 100
 
       dot
     }
+
+    def toGnuPlotString: String = {
+      var plotString = s"set obj rect from ${bounds.bottomLeftPoint.x}, ${bounds.bottomLeftPoint.y} to ${bounds.topRightPoint.x}, ${bounds.topRightPoint.y} \n"
+
+      children.filterNot(_ == null).foreach(plotString += _.toGnuPlotString)
+
+      if(isLeaf)
+        elements.foreach(p => {
+          plotString += s"set object circle at ${p.position.x}, ${p.position.y} fillcolor rgb 'red' fillstyle solid noborder radius char 0.1\n"
+        })
+
+      plotString
+
+      }
 
     override def toString: String = {
       val xBounds = s"(x: ${bounds.bottomLeftPoint.x} to ${bounds.topRightPoint.x})"

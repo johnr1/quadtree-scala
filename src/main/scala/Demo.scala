@@ -14,6 +14,15 @@ object Demo {
   }
 
   /**
+    * Generates a gnu plot script file from a given tree
+    */
+  def generatePlotFile[A](tree: QuadTree[A], filename: String = "tree.plot"): Unit = {
+    val pw = new PrintWriter(new File(filename))
+    pw.write(tree.toGnuPlotString)
+    pw.close()
+  }
+
+  /**
     * Performs an insertion, search and deletion of n elements
     * @param n The number of elements to generate
     */
@@ -76,12 +85,15 @@ object Demo {
     points.foreach(println)
 
     // INSERTION
-    println(s"\n[DEMO] Inserting $n points in the tree with data their x+y as Int:")
+    println(s"\n[DEMO] Inserting $n points in the tree with data their x+y as Int...")
     points.foreach(p => tree.insert(p, (p.x + p.y).toInt))
 
-    println(s"[DEMO] Generating graphviz format .dot file as 'tree.dot' for tree visualization...\n\n")
+    // GENERATE DOT AND PLOT FILES
+    println(s"[DEMO] Generating graphviz format .dot file as 'tree.dot' for tree visualization...")
     generateDotFile(tree)
 
+    println(s"[DEMO] Generating gnu plot script file file as 'tree.plot' for tree visualization...\n\n")
+    generatePlotFile(tree)
 
     val i = r.nextInt(n)
 
