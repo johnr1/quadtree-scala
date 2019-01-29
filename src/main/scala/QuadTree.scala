@@ -359,6 +359,11 @@ class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 100
       dot
     }
 
+    /**
+      * Produces a string containing a script to be
+      * used with the gnu plot program to plot the 2d space
+      * of the quadtree
+      */
     def toGnuPlotString: String = {
       var plotString = s"set obj rect from ${bounds.bottomLeftPoint.x}, ${bounds.bottomLeftPoint.y} to ${bounds.topRightPoint.x}, ${bounds.topRightPoint.y} \n"
 
