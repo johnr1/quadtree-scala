@@ -71,7 +71,7 @@ sbt console
 ```
 From here you can use the entire Quadtree API from the terminal e.g.
 
-```
+```scala
 [info] Starting scala interpreter...
 Welcome to Scala 2.12.8 (OpenJDK 64-Bit Server VM, Java 1.8.0_202).
 Type in expressions for evaluation. Or try :help.

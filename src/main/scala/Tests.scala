@@ -204,7 +204,7 @@ object Tests {
       (Tests.testKNNSearch _ , "KNN Search"),
     )
 
-    for(i <- 0 to iterations) {
+    for(i <- 1 to iterations) {
       println(s" - Iteration: $i - ")
       for (t <- tests) {
         runTest(t._1, t._2)

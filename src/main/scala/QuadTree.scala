@@ -371,7 +371,7 @@ class QuadTree[A](K: Int = 2, center: Point = Point(0, 0), halfDim: Double = 100
 
       if(isLeaf)
         elements.foreach(p => {
-          plotString += s"set object circle at ${p.position.x}, ${p.position.y} fillcolor rgb 'red' fillstyle solid noborder radius char 0.1\n"
+          plotString += s"set object circle at ${p.position.x}, ${p.position.y} fillcolor rgb 'red' fillstyle solid noborder radius char 0.25\n"
         })
 
       plotString
