@@ -1,10 +1,61 @@
-# QuadTree
+﻿# QuadTree
 
-A QuadTree data structure implementation in Scala.
+A complete QuadTree data structure implementation in Scala. 
+
+Supports the following operations:
+* Insertion
+* Search
+* Deletion
+* Update
+* kNN Search
+* Range Search
+* Quadtree nodes and 2D plane visualizations
+
+## Usage
+The QuadTree can associate a Point with coordinates x,y with any datatype using Scala Generics. 
+
+```scala
+// Creates a new Quadtree that associates points with Strings. Its center is (0,0)
+// and bounds x:(-50,50) y:(-50,50) where each leaf can store up two elements
+scala> val q = new QuadTree[String](K=2, center=Point(0,0), halfDim=50)
+q: QuadTree[String] = QuadTree@21710383
+
+// Insert a point (1,5) with value "String1"
+scala> q.insert(Point(1,5), "String1")
+res1: Boolean = true  // Returns true to indicate successful insertion (would return false if already existed)
+
+scala> q.insert(Point(5,5), "String2")
+res2: Boolean = true
+
+scala> q.insert(Point(-9, 0), "String3")
+res3: Boolean = true
+
+// Search for point 5,5 in the tree
+scala> q.search(Point(5, 5))
+res4: Option[String] = Some(String2)
+
+// Remove point 5,5
+scala> q.remove(Point(5, 5))
+res5: Boolean = true // True indicates success
+
+scala> q.search(Point(5,5))
+res6: Option[String] = None // Item deleted
+
+// Search for 1 nearest neighbor to the point 0,0
+scala> q.knnSearch(Point(0,0), 1)
+res7: scala.collection.mutable.ListBuffer[(Point, String)] = ListBuffer((Point(1.0,5.0),String1))
+
+// Search for all points in the range x: -100 to 0 and y: -100 to 0:
+scala> q.rangeSearch(Point(-100,-100), Point(0,0))
+res8: scala.collection.mutable.ListBuffer[(Point, String)] = ListBuffer((Point(-9.0,0.0),String3))
+```
+
+### Visualizations
+`q.toGraphvizString()` generates the graphviz dot to file format to visualize the tree.
+
+`q.toGnuPlotString()` to generate the gnu plot format to visualize the 2D plane.
 
 ## Building
-
-The entire building process is done through the default built tool for scala, sbt (simple build tool). 
 
 In order to compile the library and run the demos you will need theese tools installed:
 * scala
@@ -23,7 +74,7 @@ If you would like to generate a .jar package type:
 sbt package
 ```
 
-## Running
+## Running showcasing 'Main' class
 The library includes a Main class which can perform certain tasks depending on the command line arguments.
 These tasks are included in the help which is printed when running the program without any arguments.
 The tasks are:
@@ -88,7 +139,3 @@ res1: Boolean = true
 scala> q.search(Point(6,6)); // Insert value "World" at 6,6
 res2: Option[String] = Some(World)
 ```
-
-## Authors
-* Rizos Giannis
-* Antoniou Andreas
